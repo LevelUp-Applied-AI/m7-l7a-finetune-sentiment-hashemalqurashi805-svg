@@ -123,7 +123,6 @@ def train_classifier(
         label2id=LABEL2ID
     )
     
-    # الـ tokenizer يتم تمريره هنا للـ Collator فقط في النسخ الحديثة
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
     
     trainer = Trainer(
@@ -134,6 +133,17 @@ def train_classifier(
         data_collator=data_collator,
         compute_metrics=compute_metrics,
     )
+    
+    # -------------------------------------------------------------
+    # ⚡ حماية السيرفر من تضارب نسخ المكاتب (keep_torch_compile TypeError)
+    # نقوم بتعديل دالة unwrap_model الخاصة بالـ accelerator لتتجاهل الباراميتر المسبب للمشكلة
+    if hasattr(trainer, "accelerator") and trainer.accelerator is not None:
+        orig_unwrap = trainer.accelerator.unwrap_model
+        def safe_unwrap(model, *args, **kwargs):
+            kwargs.pop("keep_torch_compile", None)  # حذف العنصر المسبب للخطأ على السيرفر
+            return orig_unwrap(model, *args, **kwargs)
+        trainer.accelerator.unwrap_model = safe_unwrap
+    # -------------------------------------------------------------
     
     trainer.train()
     return trainer
