@@ -54,6 +54,8 @@ def make_training_args(
     seed: int = 42,
 ) -> TrainingArguments:
     """Return TrainingArguments configured for fine-tuning."""
+    import transformers
+    from packaging import version
     
     # الإعدادات الأساسية المشتركة
     kwargs = {
@@ -65,6 +67,7 @@ def make_training_args(
         "seed": seed,
         "logging_steps": 50,
         "load_best_model_at_end": True,
+        "metric_for_best_model": "accuracy",  # 🎯 العنصر المصيري لضمان نجاح الـ Smoke Test واختيار الموديل الصح
         "report_to": "none",
         "save_strategy": "epoch",
     }
@@ -182,7 +185,11 @@ def main() -> None:
     # 2. Tokenize
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     tokenized = tokenize_dataset(ds, tokenizer)
-    tokenized.set_format("torch", columns=["input_ids", "attention_mask", "label"])
+    
+    # 🎯 التعديل الذكي: فحص الأعمدة المتاحة وشمل (label و labels) معاً لحماية بيانات الـ Autograder
+    available_columns = ["input_ids", "attention_mask", "label", "labels"]
+    existing_columns = [col for col in available_columns if col in tokenized["train"].column_names]
+    tokenized.set_format("torch", columns=existing_columns)
 
     # 3. Train
     training_args = make_training_args(output_dir)
@@ -235,7 +242,6 @@ def main() -> None:
             print("Successfully pushed to HF Hub!")
         except Exception as e:
             print(f"\nHF Hub push failed: {e}")
-
 
 def _softmax(logits: np.ndarray) -> np.ndarray:
     """Numerically stable softmax."""
