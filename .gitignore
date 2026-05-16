@@ -1,7 +1,9 @@
-# Fine-tuned model checkpoints — local-only.
+# Fine-tuned model checkpoints – local-only.
 # DistilBERT checkpoints are ~265 MB, exceeding GitHub's 100 MB hard limit.
 # The model lives on Hugging Face Hub; do not commit it to the repo.
 model/
+model_lr_*/
+checkpoint-*/
 
 # Python
 __pycache__/
